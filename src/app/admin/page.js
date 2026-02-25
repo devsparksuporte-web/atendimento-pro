@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Shield, CheckCircle2, ChevronLeft, Building2 } from 'lucide-react';
-import '@/styles/globals.css'; // Ensure globals are loaded
+import { useAuth } from '@/contexts/AuthContext';
+import { Shield, CheckCircle2, ChevronLeft, Building2, AlertCircle } from 'lucide-react';
+import '@/styles/globals.css';
 
 export default function AdminPage() {
     const { allThemes, availableThemes, setAvailableThemes } = useTheme();
+    const { user, loading } = useAuth();
+    const router = useRouter();
 
-    // Mock company list for the admin panel
     const [companies] = useState([
         { id: 1, name: 'Pizzaria do João', plan: 'Pro', active: true },
         { id: 2, name: 'Burger & Co', plan: 'Básico', active: true },
@@ -19,9 +22,13 @@ export default function AdminPage() {
 
     const [selectedCompany, setSelectedCompany] = useState(companies[0]);
 
+    useEffect(() => {
+        if (!loading && (!user || user.role !== 'admin')) {
+            router.push('/dashboard');
+        }
+    }, [user, loading, router]);
+
     // Handle toggling theme availability for the selected company
-    // Note: Since this is purely frontend demo, we are just storing it in the global context/localStorage
-    // In a real app, this would make an API call to update the specific company's allowed themes
     const toggleTheme = (themeKey) => {
         let newAvailable;
         if (availableThemes.includes(themeKey)) {
@@ -34,6 +41,10 @@ export default function AdminPage() {
         setAvailableThemes(newAvailable);
         localStorage.setItem('availableThemes', JSON.stringify(newAvailable));
     };
+
+    if (loading || !user || user.role !== 'admin') {
+        return <div style={{ minHeight: '100vh', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>Carregando...</div>;
+    }
 
     return (
         <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f8fafc', fontFamily: 'var(--font-family)' }}>
@@ -50,7 +61,7 @@ export default function AdminPage() {
                 </Link>
             </header>
 
-            <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '300px 1fr', gap: '32px' }}>
+            <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'minmax(250px, 300px) 1fr', gap: '32px' }}>
 
                 {/* Companies List */}
                 <div>

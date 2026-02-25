@@ -3,10 +3,16 @@
 import { useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Building2, Palette, Webhook, Shield, CreditCard, CheckCircle2, MessageSquare, Zap, Database, Link2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ConfiguracoesPage() {
     const { businessType, setBusinessType, themes } = useTheme();
+    const { user, loading: authLoading } = useAuth();
     const [activeTab, setActiveTab] = useState('empresa');
+
+    if (authLoading) return <div className="page-content">Carregando configurações...</div>;
+
+    const empresa = user?.empresa || {};
 
     return (
         <div className="page-content">
@@ -40,11 +46,11 @@ export default function ConfiguracoesPage() {
                         <div className="card">
                             <h3 className="card-title" style={{ marginBottom: '24px' }}>Dados da Empresa</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '500px' }}>
-                                <div className="form-group"><label className="form-label">Nome da Empresa</label><input className="form-input" defaultValue="Pizzaria do João" style={{ borderRadius: '12px' }} /></div>
-                                <div className="form-group"><label className="form-label">CNPJ</label><input className="form-input" defaultValue="12.345.678/0001-90" style={{ borderRadius: '12px' }} /></div>
-                                <div className="form-group"><label className="form-label">Telefone</label><input className="form-input" defaultValue="(11) 99999-0000" style={{ borderRadius: '12px' }} /></div>
-                                <div className="form-group"><label className="form-label">Email</label><input className="form-input" defaultValue="contato@pizzariadojoao.com" style={{ borderRadius: '12px' }} /></div>
-                                <div className="form-group"><label className="form-label">Endereço</label><input className="form-input" defaultValue="Rua das Pizzas, 123" style={{ borderRadius: '12px' }} /></div>
+                                <div className="form-group"><label className="form-label">Nome da Empresa</label><input className="form-input" defaultValue={empresa.nome || ''} style={{ borderRadius: '12px' }} /></div>
+                                <div className="form-group"><label className="form-label">CNPJ</label><input className="form-input" defaultValue={empresa.cnpj || ''} style={{ borderRadius: '12px' }} /></div>
+                                <div className="form-group"><label className="form-label">Telefone</label><input className="form-input" defaultValue={empresa.telefone || ''} style={{ borderRadius: '12px' }} /></div>
+                                <div className="form-group"><label className="form-label">Email</label><input className="form-input" defaultValue={empresa.email || ''} style={{ borderRadius: '12px' }} /></div>
+                                <div className="form-group"><label className="form-label">Endereço</label><input className="form-input" defaultValue={empresa.endereco || ''} style={{ borderRadius: '12px' }} /></div>
                                 <button className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>Salvar Alterações</button>
                             </div>
                         </div>

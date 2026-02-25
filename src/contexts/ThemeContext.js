@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 const ThemeContext = createContext();
 
@@ -14,8 +15,14 @@ const THEMES = {
 export function ThemeProvider({ children }) {
   const [businessType, setBusinessType] = useState('pizzaria');
   const [appearance, setAppearance] = useState('light');
-  // In a real app, this would come from the user's subscription/admin settings
   const [availableThemes, setAvailableThemes] = useState(Object.keys(THEMES));
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user?.empresa?.tipo_negocio && THEMES[user.empresa.tipo_negocio]) {
+      setBusinessType(user.empresa.tipo_negocio);
+    }
+  }, [user]);
 
   useEffect(() => {
     const saved = localStorage.getItem('businessType');

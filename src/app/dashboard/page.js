@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MessageCircle, ShoppingBag, DollarSign, Users, TrendingUp, TrendingDown, Package, Clock, ChefHat, Truck, CheckCircle2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 
 const chartData = [
     { dia: 'Seg', pedidos: 32 }, { dia: 'Ter', pedidos: 45 },
@@ -35,7 +38,68 @@ const activeOrders = [
 
 export default function DashboardPage() {
     const { currentTheme } = useTheme();
+    const { user } = useAuth();
     const [chartFilter, setChartFilter] = useState('7d');
+    const [stats, setStats] = useState([
+        { label: 'Atendimentos Ativos', val: '0', change: '...', icon: MessageCircle, color: 'blue' },
+        { label: 'Pedidos Hoje', val: '0', change: '...', icon: ShoppingBag, color: 'green' },
+        { label: 'Faturamento Mensal', val: 'R$ 0', change: '...', icon: DollarSign, color: 'yellow' },
+        { label: 'Clientes Total', val: '0', change: '...', icon: Users, color: 'primary' },
+    ]);
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (user?.empresaId) {
+            fetchDashboardData();
+        }
+    }, [user]);
+
+    const fetchDashboardData = async () => {
+        setLoading(true);
+        try {
+            // In a real app, these would be separate queries or a RPC call
+            // Fetch total clients
+            const { count: clientsCount } = await supabase
+                .from('clientes')
+                .select('*', { count: 'exact', head: true })
+                .eq('empresa_id', user.empresaId);
+
+            // Fetch recent orders
+            const { data: recentOrdersData } = await supabase
+                .from('pedidos')
+                .select('*')
+                .eq('empresa_id', user.empresaId)
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            setStats(prev => [
+                prev[0], // Keep active chats mock for now
+                prev[1], // Keep orders today mock or fetch
+                prev[2],
+                { ...prev[3], val: clientsCount?.toString() || '0' }
+            ]);
+
+            if (recentOrdersData) {
+                setOrders(recentOrdersData.map(o => ({
+                    id: `#${o.numero_pedido}`,
+                    cliente: 'Cliente WhatsApp', // Should join with clientes table
+                    itens: JSON.stringify(o.itens),
+                    valor: `R$ ${o.total.toFixed(2)}`,
+                    status: o.status,
+                    hora: new Date(o.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                })));
+            }
+        } catch (err) {
+            console.error('Error fetching dashboard data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return <div className="page-content">Carregando dados...</div>;
+    }
 
     return (
         <div className="page-content animate-fade-in" style={{ padding: 'var(--space-6)' }}>
@@ -57,12 +121,7 @@ export default function DashboardPage() {
                 gap: 'var(--space-6)',
                 marginBottom: 'var(--space-10)'
             }}>
-                {[
-                    { label: 'Atendimentos Ativos', val: '12', change: '+8%', icon: MessageCircle, color: 'blue' },
-                    { label: 'Pedidos Hoje', val: '48', change: '+12%', icon: ShoppingBag, color: 'green' },
-                    { label: 'Faturamento Mensal', val: 'R$ 18.4k', change: '+15%', icon: DollarSign, color: 'yellow' },
-                    { label: 'Clientes Total', val: '342', change: '+23 novos', icon: Users, color: 'primary' },
-                ].map((s, i) => {
+                {stats.map((s, i) => {
                     const Icon = s.icon;
                     return (
                         <div key={i} className="stat-card" style={{ animation: `slideUp 0.6s ease forwards ${i * 0.1}s`, opacity: 0 }}>
@@ -201,8 +260,8 @@ export default function DashboardPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {recentOrders.map(o => {
-                                const st = statusConfig[o.status];
+                            {orders.map(o => {
+                                const st = statusConfig[o.status] || statusConfig.recebido;
                                 return (
                                     <tr key={o.id}>
                                         <td style={{ fontWeight: 700, paddingLeft: '32px', color: 'var(--primary)' }}>{o.id}</td>

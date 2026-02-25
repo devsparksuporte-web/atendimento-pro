@@ -1,4 +1,6 @@
 import '@/styles/globals.css';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 export const metadata = {
   title: 'Atendimento Pro — Automação de Atendimentos via WhatsApp',
@@ -25,7 +27,11 @@ export default function RootLayout({ children }) {
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body>
-        {children}
+        <AuthProvider>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </AuthProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `

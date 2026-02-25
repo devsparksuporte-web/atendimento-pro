@@ -2,13 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
     LayoutDashboard, MessageCircle, Users, ShoppingBag,
     UtensilsCrossed, DollarSign, BarChart3, Settings,
     MessageSquare, LogOut, ChevronDown, Check, Shield,
-    Sun, Moon
+    Sun, Moon, Power
 } from 'lucide-react';
 
 const navItems = [
@@ -24,15 +25,22 @@ const navItems = [
 
 export default function Sidebar({ isOpen, onClose }) {
     const pathname = usePathname();
+    const router = useRouter();
     const { businessType, setBusinessType, currentTheme, themes, appearance, toggleAppearance } = useTheme();
+    const { user, logout } = useAuth();
     const [modeOpen, setModeOpen] = useState(false);
+    const [userDropdownOpen, setUserDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
+    const userDropdownRef = useRef(null);
 
-    // Close dropdown on outside click
+    // Close dropdowns on outside click
     useEffect(() => {
         function handleClickOutside(e) {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
                 setModeOpen(false);
+            }
+            if (userDropdownRef.current && !userDropdownRef.current.contains(e.target)) {
+                setUserDropdownOpen(false);
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
@@ -42,6 +50,11 @@ export default function Sidebar({ isOpen, onClose }) {
     const handleSelectMode = (key) => {
         setBusinessType(key);
         setModeOpen(false);
+    };
+
+    const handleLogout = () => {
+        logout();
+        onClose();
     };
 
     return (
@@ -158,41 +171,101 @@ export default function Sidebar({ isOpen, onClose }) {
 
                 <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '16px', borderTop: '1px solid hsla(var(--gray-200), 0.5)' }}>
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                        <Link href="/admin" style={{
-                            flex: 1, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px',
-                            borderRadius: '12px', color: 'var(--gray-500)', fontSize: '0.85rem', fontWeight: 600,
-                            textDecoration: 'none', background: 'var(--gray-50)', border: '1px solid hsla(var(--gray-200), 0.8)',
-                            transition: 'all 0.2s ease', overflow: 'hidden'
-                        }}>
-                            <Shield size={16} /> Admin
-                        </Link>
+                        {user?.role === 'admin' && (
+                            <Link href="/admin" style={{
+                                flex: 1, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px',
+                                borderRadius: '12px', color: 'var(--gray-500)', fontSize: '0.85rem', fontWeight: 600,
+                                textDecoration: 'none', background: 'var(--gray-50)', border: '1px solid hsla(var(--gray-200), 0.8)',
+                                transition: 'all 0.2s ease', overflow: 'hidden'
+                            }}>
+                                <Shield size={16} /> Admin
+                            </Link>
+                        )}
                         <button
                             onClick={toggleAppearance}
                             style={{
                                 width: '48px', height: '48px', borderRadius: '12px',
                                 background: 'var(--gray-50)', border: '1px solid hsla(var(--gray-200), 0.8)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                cursor: 'pointer', color: 'var(--gray-600)', transition: 'all 0.2s ease'
+                                cursor: 'pointer', color: 'var(--gray-600)', transition: 'all 0.2s ease',
+                                flex: user?.role === 'admin' ? '0' : '1'
                             }}
                         >
                             {appearance === 'light' ? <Moon size={20} /> : <Sun size={20} />}
                         </button>
                     </div>
 
-                    <div className="user-info" style={{
-                        padding: '12px', background: 'var(--gray-50)', borderRadius: '14px',
-                        border: '1px solid hsla(var(--gray-200), 0.8)', display: 'flex', alignItems: 'center', gap: '12px'
-                    }}>
-                        <div className="user-avatar" style={{
-                            width: '36px', height: '36px', borderRadius: '10px',
-                            background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
-                            color: 'white', fontWeight: 700, fontSize: '0.8rem'
-                        }}>JP</div>
-                        <div className="user-details" style={{ flex: 1 }}>
-                            <div className="user-name" style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--gray-900)' }}>João Pizza</div>
-                            <div className="user-role" style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Dono</div>
+                    <div ref={userDropdownRef} style={{ position: 'relative' }}>
+                        <div
+                            className="user-info"
+                            onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                            style={{
+                                padding: '12px', background: 'var(--gray-50)', borderRadius: '14px',
+                                border: '1px solid hsla(var(--gray-200), 0.8)', display: 'flex', alignItems: 'center', gap: '12px',
+                                cursor: 'pointer', transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <div className="user-avatar" style={{
+                                width: '36px', height: '36px', borderRadius: '10px',
+                                background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                                color: 'white', fontWeight: 700, fontSize: '0.8rem',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}>
+                                {user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '??'}
+                            </div>
+                            <div className="user-details" style={{ flex: 1 }}>
+                                <div className="user-name" style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--gray-900)' }}>
+                                    {user?.name || 'Carregando...'}
+                                </div>
+                                <div className="user-role" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', textTransform: 'capitalize' }}>
+                                    {user?.role === 'admin' ? 'Super Admin' : user?.role === 'owner' ? 'Dono do Negócio' : 'Funcionário'}
+                                </div>
+                            </div>
+                            <ChevronDown size={14} style={{
+                                color: 'var(--gray-400)',
+                                transition: 'transform 0.2s ease',
+                                transform: userDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                            }} />
                         </div>
-                        <ChevronDown size={14} style={{ color: 'var(--gray-400)' }} />
+
+                        {userDropdownOpen && (
+                            <div style={{
+                                position: 'absolute',
+                                bottom: 'calc(100% + 8px)',
+                                left: 0,
+                                right: 0,
+                                background: 'var(--bg-card)',
+                                border: '1px solid hsla(var(--gray-200), 0.8)',
+                                borderRadius: '16px',
+                                boxShadow: 'var(--shadow-xl)',
+                                zIndex: 200,
+                                padding: '8px',
+                                animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                            }}>
+                                <button
+                                    onClick={handleLogout}
+                                    style={{
+                                        width: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        padding: '12px',
+                                        border: 'none',
+                                        borderRadius: '10px',
+                                        cursor: 'pointer',
+                                        background: 'transparent',
+                                        color: 'hsl(0, 84%, 60%)',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 600,
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    className="logout-button-hover"
+                                >
+                                    <Power size={18} />
+                                    <span>Sair do Sistema</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </aside>

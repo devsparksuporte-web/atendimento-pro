@@ -1,15 +1,55 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import Sidebar from '@/components/Sidebar';
 import { Menu, Bell, Search } from 'lucide-react';
 
 function DashboardShell({ children }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push('/');
+        }
+    }, [user, loading, router]);
+
+    if (loading) {
+        return (
+            <div style={{
+                minHeight: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--bg-card)',
+                gap: '24px'
+            }}>
+                <div className="logo-icon animate-pulse" style={{
+                    width: '64px',
+                    height: '64px',
+                    background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '20px'
+                }}>
+                    <Search size={32} color="white" />
+                </div>
+                <div style={{ color: 'var(--gray-500)', fontWeight: 600 }}>Carregando seu painel...</div>
+            </div>
+        );
+    }
+
+    if (!user) return null;
 
     return (
-        <div>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-main)' }}>
             <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
             <header className="app-header">
@@ -27,7 +67,19 @@ function DashboardShell({ children }) {
                         <Bell size={20} />
                         <span className="notification-dot"></span>
                     </button>
-                    <div className="user-avatar" style={{ width: '36px', height: '36px', fontSize: '0.8rem' }}>JP</div>
+                    <div className="user-avatar" style={{
+                        width: '36px',
+                        height: '36px',
+                        fontSize: '0.8rem',
+                        background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                        color: 'white',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        {user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '??'}
+                    </div>
                 </div>
             </header>
 
@@ -40,8 +92,6 @@ function DashboardShell({ children }) {
 
 export default function DashboardLayout({ children }) {
     return (
-        <ThemeProvider>
-            <DashboardShell>{children}</DashboardShell>
-        </ThemeProvider>
+        <DashboardShell>{children}</DashboardShell>
     );
 }

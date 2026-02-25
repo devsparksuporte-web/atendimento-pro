@@ -2,17 +2,35 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { MessageSquare, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    router.push('/dashboard');
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const result = await login(email, password);
+      if (result.success) {
+        router.push('/dashboard');
+      } else {
+        setError(result.message || 'Erro ao realizar login. Verifique suas credenciais.');
+        setIsLoading(false);
+      }
+    } catch (err) {
+      setError('Ocorreu um erro inesperado. Tente novamente.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -59,6 +77,25 @@ export default function LoginPage() {
             <p style={{ color: 'hsl(var(--gray-500))', marginTop: '8px', fontSize: '0.95rem' }}>Automacão inteligente para seu negócio</p>
           </div>
 
+          {error && (
+            <div style={{
+              background: 'hsla(0, 100%, 50%, 0.1)',
+              color: 'hsl(0, 100%, 40%)',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              marginBottom: '24px',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              border: '1px solid hsla(0, 100%, 50%, 0.2)'
+            }}>
+              <AlertCircle size={18} />
+              {error}
+            </div>
+          )}
+
           <form className="login-form" onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div className="form-group">
               <label className="form-label">Email Corporativo</label>
@@ -71,6 +108,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   style={{ paddingLeft: '48px' }}
+                  required
                 />
               </div>
             </div>
@@ -89,6 +127,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   style={{ paddingLeft: '48px', paddingRight: '50px' }}
+                  required
                 />
                 <button
                   type="button"
@@ -100,8 +139,8 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary btn-lg btn-block" style={{ marginTop: '8px' }}>
-              Acessar Painel
+            <button type="submit" className="btn btn-primary btn-lg btn-block" style={{ marginTop: '8px' }} disabled={isLoading}>
+              {isLoading ? 'Acessando...' : 'Acessar Painel'}
             </button>
 
             <div style={{ textAlign: 'center', fontSize: '0.9rem', color: 'hsl(var(--gray-500))', marginTop: '8px' }}>
@@ -116,5 +155,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-
 }
