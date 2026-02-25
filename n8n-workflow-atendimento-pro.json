@@ -1,0 +1,221 @@
+{
+    "name": "Atendimento Pro - SaaS WhatsApp Bot",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "whatsapp-webhook",
+                "responseMode": "onReceived",
+                "options": {}
+            },
+            "name": "Webhook (WhatsApp)",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                0,
+                300
+            ],
+            "id": "webhook-node",
+            "webhookId": "whatsapp-webhook-id"
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "table": "empresas",
+                "limit": 1,
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "whatsapp_number",
+                            "condition": "eq",
+                            "keyValue": "={{$json.body.to}}"
+                        }
+                    ]
+                }
+            },
+            "name": "Supabase (Busca Empresa)",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                200,
+                300
+            ],
+            "id": "supabase-company"
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "table": "clientes",
+                "limit": 1,
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "telefone",
+                            "condition": "eq",
+                            "keyValue": "={{$node['Webhook (WhatsApp)'].json.body.from}}"
+                        }
+                    ]
+                }
+            },
+            "name": "Supabase (Busca/Cria Lead)",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                400,
+                300
+            ],
+            "id": "supabase-lead"
+        },
+        {
+            "parameters": {
+                "text": "={{$node['Webhook (WhatsApp)'].json.body.text}}",
+                "options": {}
+            },
+            "name": "Agente IA (OpenAI)",
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 1,
+            "position": [
+                600,
+                300
+            ],
+            "id": "ai-agent"
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o-mini",
+                "options": {
+                    "temperature": 0.5
+                }
+            },
+            "name": "Modelo GPT-4o",
+            "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1,
+            "position": [
+                600,
+                450
+            ],
+            "id": "openai-model"
+        },
+        {
+            "parameters": {
+                "systemMessage": "={{ \"Você é o assistente virtual da empresa \" + $node[\"Supabase (Busca Empresa)\"].json[\"nome\"] + \". Responda de forma educada e baseie-se no cardápio: \" + $node[\"Supabase (Busca Empresa)\"].json[\"cardapio\"] + \". Seja conciso e ajude o cliente a fazer o pedido.\" }}"
+            },
+            "name": "Memória (Contexto)",
+            "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+            "typeVersion": 1,
+            "position": [
+                750,
+                450
+            ],
+            "id": "memory-node"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.exemplo-evolution.com/message/sendText/instancia",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "apikey",
+                            "value": "sua-api-key-aqui"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "number",
+                            "value": "={{$node['Webhook (WhatsApp)'].json.body.from}}"
+                        },
+                        {
+                            "name": "text",
+                            "value": "={{$json.output}}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "name": "Evolution API (Envia Msg)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                800,
+                300
+            ],
+            "id": "evolution-api"
+        }
+    ],
+    "connections": {
+        "Webhook (WhatsApp)": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase (Busca Empresa)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase (Busca Empresa)": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase (Busca/Cria Lead)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase (Busca/Cria Lead)": {
+            "main": [
+                [
+                    {
+                        "node": "Agente IA (OpenAI)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Modelo GPT-4o": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "Agente IA (OpenAI)",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Memória (Contexto)": {
+            "ai_memory": [
+                [
+                    {
+                        "node": "Agente IA (OpenAI)",
+                        "type": "ai_memory",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Agente IA (OpenAI)": {
+            "main": [
+                [
+                    {
+                        "node": "Evolution API (Envia Msg)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

@@ -13,12 +13,16 @@ const THEMES = {
 
 export function ThemeProvider({ children }) {
   const [businessType, setBusinessType] = useState('pizzaria');
+  const [appearance, setAppearance] = useState('light');
   // In a real app, this would come from the user's subscription/admin settings
   const [availableThemes, setAvailableThemes] = useState(Object.keys(THEMES));
 
   useEffect(() => {
     const saved = localStorage.getItem('businessType');
     if (saved && THEMES[saved]) setBusinessType(saved);
+
+    const savedAppearance = localStorage.getItem('appearance');
+    if (savedAppearance) setAppearance(savedAppearance);
 
     const savedAvailable = localStorage.getItem('availableThemes');
     if (savedAvailable) {
@@ -31,6 +35,15 @@ export function ThemeProvider({ children }) {
     localStorage.setItem('businessType', businessType);
   }, [businessType]);
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-appearance', appearance);
+    localStorage.setItem('appearance', appearance);
+  }, [appearance]);
+
+  const toggleAppearance = () => {
+    setAppearance(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
   // Filter THEMES to only include available ones
   const filteredThemes = Object.keys(THEMES)
     .filter(key => availableThemes.includes(key))
@@ -40,7 +53,18 @@ export function ThemeProvider({ children }) {
     }, {});
 
   return (
-    <ThemeContext.Provider value={{ businessType, setBusinessType, themes: filteredThemes, allThemes: THEMES, availableThemes, setAvailableThemes, currentTheme: THEMES[businessType] }}>
+    <ThemeContext.Provider value={{
+      businessType,
+      setBusinessType,
+      appearance,
+      setAppearance,
+      toggleAppearance,
+      themes: filteredThemes,
+      allThemes: THEMES,
+      availableThemes,
+      setAvailableThemes,
+      currentTheme: THEMES[businessType]
+    }}>
       {children}
     </ThemeContext.Provider>
   );
