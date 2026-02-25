@@ -54,7 +54,6 @@ export default function DashboardPage() {
             {/* Stats Cards */}
             <div className="stats-grid" style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
                 gap: 'var(--space-6)',
                 marginBottom: 'var(--space-10)'
             }}>
@@ -88,12 +87,11 @@ export default function DashboardPage() {
             {/* Chart + Active Orders */}
             <div className="grid-2" style={{
                 display: 'grid',
-                gridTemplateColumns: '1.6fr 1fr',
                 gap: 'var(--space-8)',
                 marginBottom: 'var(--space-10)'
             }}>
-                <div className="card" style={{ padding: '32px' }}>
-                    <div className="card-header" style={{ marginBottom: '32px' }}>
+                <div className="card" style={{ padding: 'var(--space-8)' }}>
+                    <div className="card-header" style={{ marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
                         <div>
                             <h3 className="card-title" style={{ fontSize: '1.25rem', marginBottom: '4px' }}>Fluxo de Pedidos</h3>
                             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Performance semanal vs período anterior</p>
